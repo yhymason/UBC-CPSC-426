@@ -1,15 +1,12 @@
-String.prototype.format = function () {
-
-	var str = this;
-
-	for ( var i = 0; i < arguments.length; i ++ ) {
-
-		str = str.replace( '{' + i + '}', arguments[ i ] );
-
-	}
-	return str;
-
-};
+/*
+	CPSC 426 - Computer Animation
+	University of British Columbia, Vancouver, BC, Canada
+	Spline editor main function : GUI, objects management and rendering
+	Created by:
+		- Mason Yang : yhymason@gmail.com
+		- Michiel van de Panne : van@cs.ubc.ca
+	2018-09-20
+*/
 
 var container, stats;
 var camera, scene, renderer, spotlight;
@@ -177,12 +174,22 @@ function init() {
 	control_points = [ new THREE.Vector3( 0, 0, 0 ), //p0
 			new THREE.Vector3( 10, 0, 10 ), //p1
 			new THREE.Vector3( 10, 0, 20 ), //p2
-			new THREE.Vector3( 0, 0, 30 ) ] //p3
+			new THREE.Vector3( 0, 0, 30 ) ]; //p3
+	// Draw control points
+	var points_geometry = new THREE.Geometry();
+	for ( var i = 0; i < control_points.length; i++ ) {
+		points_geometry.vertices.push( control_points[i] );
+	}
+	var points_material = new THREE.PointsMaterial( { color: 0x00008B } );
+	var points_field = new THREE.Points( points_geometry, points_material); 
+	scene.add( points_field );
+
 	// Draw control polygon
 	var control_polygon_geometry = new THREE.BufferGeometry().setFromPoints( control_points );
 	var control_polygon_material = new THREE.LineBasicMaterial( { color : 'black' } );
 	var control_polygon_mesh = new THREE.Line( control_polygon_geometry, control_polygon_material );
 	scene.add( control_polygon_mesh );
+
 	// Create Cubic Bezier curve
 	var cubicBezier = new CubicBezierCurve( control_points[0], control_points[1], control_points[2], control_points[3] );
 	var points = cubicBezier.getPoints( 500 );
@@ -190,15 +197,18 @@ function init() {
 	var bezier_material = new THREE.LineBasicMaterial( { color : 'skyblue' } );
 	cubicBezier.mesh = new THREE.Line( bezier_geometry, bezier_material );
 	cubicBezier.mesh.castShadow = true;
+
 	// Create the final object to add to the scene
 	splines.bezierCurveObject = cubicBezier;
-
 	scene.add( splines.bezierCurveObject.mesh );
 
 }
 
 
-
+/*
+	Standard animate and render code
+	Do not change/modify
+*/
 function animate() {
 
 	requestAnimationFrame( animate );

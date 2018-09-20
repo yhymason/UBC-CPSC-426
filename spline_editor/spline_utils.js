@@ -1,3 +1,12 @@
+/*
+	CPSC 426 - Computer Animation
+	University of British Columbia, Vancouver, BC, Canada
+	Spline editor utility function : curve definitions and interpolation methods
+	Created by:
+		- Mason Yang : yhymason@gmail.com
+		- Michiel van de Panne : van@cs.ubc.ca
+	2018-09-20
+*/
 
 // Cubic Bezier Definition Start
 function CubicBezierCurve( v0, v1, v2, v3 ) {
