@@ -29,14 +29,22 @@
 				padding: 5px;
 				font-family:Monospace;
 				font-size:13px;
-				text-align:center;
+				text-align:left;
 			}
+
 		</style>
 	</head>
 	<body>
 
-		<div id="container"></div>
-		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> CPSC 426 spline editor</div>
+  		<div id="container"></div>
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> 
+			<h5>CPSC 426 spline editor</h5>
+			<h6>Keyboard Controls:</h6>
+			<h6>W-increse sweeping t values</h6>
+			<h6>S-decrese sweeping t values</h6>
+			<h6>P-set camera to view plots</h6>
+			<h6>C-reset camera to view curves</h6>
+		</div>
 
 		<script src="../build/three.js"></script>
 
@@ -47,6 +55,7 @@
 		<script src="../js/libs/stats.min.js"></script>
 		<script src="../js/libs/dat.gui.min.js"></script>
 
+		<script src="THREEx.KeyboardState.js"></script>
 		<script src="spline_utils.js"></script>
 		<script src="spline_main.js"></script>
 	</body>
