@@ -13,8 +13,8 @@
 function Plot( origin, xend, yend ){
 
 	this.origin = origin || new THREE.Vector3();
-	this.xend = xend || new THREE.Vector3( this.origin.x + 20, this.origin.y, this.origin.z );
-	this.yend = yend || new THREE.Vector3( this.origin.x, this.origin.y + 20, this.origin.z );
+	this.xend = xend || new THREE.Vector3( this.origin.x + 10, this.origin.y, this.origin.z );
+	this.yend = yend || new THREE.Vector3( this.origin.x, this.origin.y + 25, this.origin.z );
 	this.xvals;
 	this.yvals;
 	this.xtext;
@@ -43,8 +43,8 @@ function Plot( origin, xend, yend ){
 	this.setData = function ( xvals, yvals ) {
 		var rangex1 = [Math.min(...xvals), Math.max(...xvals)];
 		var rangex2 = [this.origin.x, this.xend.x];
-		var rangey1 = [Math.min(...yvals), Math.max(...yvals)];
-		var rangey2 = [this.origin.y, this.yend.y];
+		var rangey1 = [-50, 50]; // vertical values range from -50 to 50 because of visibal grid
+		var rangey2 = [this.origin.y - 25, this.yend.y]; // account for negative values
 		this.xvals = this.mapPoints( xvals, rangex1, rangex2 );
 		this.yvals = this.mapPoints( yvals, rangey1, rangey2 );
 	};
@@ -78,12 +78,13 @@ function Plot( origin, xend, yend ){
 	// plot object will have real geometry
 	this.plotObject = function () {
 
-		var xlength = (this.xend.x - this.origin.x) * 1.25;
-		var ylength = (this.yend.y - this.origin.y) * 1.25;
+		var xlength = (this.xend.x - this.origin.x) * 1.1;
+		var ylength = (this.yend.y - this.origin.y) * 2;
 		var xdir = new THREE.Vector3( this.xend.x - this.origin.x, this.xend.y - this.origin.y, this.xend.z - this.origin.z );
-		var ydir = new THREE.Vector3( this.yend.x - this.origin.x, this.yend.y - this.origin.y, this.yend.z - this.origin.z )
-		this.obj.xaxis = new THREE.ArrowHelper( xdir, this.origin, xlength, 0xff0000 );
-		this.obj.yaxis = new THREE.ArrowHelper( ydir, this.origin, ylength, 0xff0000 );
+		var ydir = new THREE.Vector3( this.yend.x - this.origin.x, this.yend.y - this.origin.y, this.yend.z - this.origin.z );
+		var ystart = new THREE.Vector3( this.origin.x, this.origin.y - 25, this.origin.z ); // y axis starting point
+		this.obj.xaxis = new THREE.ArrowHelper( xdir, this.origin, xlength, 0xff0000, 1, 1 ); 
+		this.obj.yaxis = new THREE.ArrowHelper( ydir, ystart, ylength, 0xff0000, 1, 1 );
 		var geometry = new THREE.Geometry().setFromPoints( this.getPoints() );
 		var material = new THREE.LineBasicMaterial( { color : 'blue' } );
 		this.obj.curve = new THREE.Line( geometry, material );

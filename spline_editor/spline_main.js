@@ -321,9 +321,6 @@ function initCurves( scene ){
 // All plot initialization code moved here
 function initPlots( scene ) {
 	// Create plots for Bezier curve
-	var origin = new THREE.Vector3( 10, 10, 0 );
-	var horizontal_end = new THREE.Vector3( 20, 10, 0 );
-	var vertical_end = new THREE.Vector3( 10, 20, 0 );
 	var tvals = [];
 	var zvals = [];
 	var xvals = [];
@@ -338,6 +335,9 @@ function initPlots( scene ) {
 	// Construct plot objects and fill it with data
 	// Bezier ----------------------------------
 	// Bezier t v.s z
+	var origin = new THREE.Vector3( 10, 25, 0 );
+	var horizontal_end = new THREE.Vector3( 20, 25, 0 );
+	var vertical_end = new THREE.Vector3( 10, 50, 0 );
 	var plot_btz = new Plot(origin, horizontal_end, vertical_end);
 	plot_btz.setData( tvals, zvals );
 	plot_btz.setLabels( "t", "z" );
@@ -345,9 +345,9 @@ function initPlots( scene ) {
 	plots.p1 = plot_btz;
 
 	// Bezier t v.s x
-	origin = new THREE.Vector3( 10, 25, 0 );
-	horizontal_end = new THREE.Vector3( 20, 25, 0);
-	vertical_end = new THREE.Vector3( 10, 35, 0 );
+	origin = new THREE.Vector3( 25, 25, 0 );
+	horizontal_end = new THREE.Vector3( 35, 25, 0);
+	vertical_end = new THREE.Vector3( 25, 50, 0 );
 	var plot_btx = new Plot(origin, horizontal_end, vertical_end);
 	plot_btx.setData( tvals, xvals );
 	plot_btx.setLabels( "t", "x" );
@@ -355,9 +355,9 @@ function initPlots( scene ) {
 	plots.p2 = plot_btx;
 
 	// Bezier t v.s y
-	origin = new THREE.Vector3( 25, 10, 0 );
-	horizontal_end = new THREE.Vector3( 35, 10, 0);
-	vertical_end = new THREE.Vector3( 25, 20, 0 );
+	origin = new THREE.Vector3( 40, 25, 0 );
+	horizontal_end = new THREE.Vector3( 50, 25, 0);
+	vertical_end = new THREE.Vector3( 40, 50, 0 );
 	var plot_bty = new Plot(origin, horizontal_end, vertical_end);
 	plot_bty.setData( tvals, yvals );
 	plot_bty.setLabels( "t", "y" );
@@ -365,9 +365,9 @@ function initPlots( scene ) {
 	plots.p3 = plot_bty;
 
 	// Hermite ----------------------------------
-	origin = new THREE.Vector3( 10, 10, 0 );
-	horizontal_end = new THREE.Vector3( 20, 10, 0 );
-	vertical_end = new THREE.Vector3( 10, 20, 0 );
+	origin = new THREE.Vector3( 10, 25, 0 );
+	horizontal_end = new THREE.Vector3( 20, 25, 0 );
+	vertical_end = new THREE.Vector3( 10, 50, 0 );
 	tvals = [];
 	zvals = [];
 	xvals = [];
@@ -385,18 +385,18 @@ function initPlots( scene ) {
 	plot_btz.plotObject();
 	plots.p4 = plot_btz;
 	// Hermite t v.s x
-	origin = new THREE.Vector3( 10, 25, 0 );
-	horizontal_end = new THREE.Vector3( 20, 25, 0);
-	vertical_end = new THREE.Vector3( 10, 35, 0 );
+	origin = new THREE.Vector3( 25, 25, 0 );
+	horizontal_end = new THREE.Vector3( 35, 25, 0);
+	vertical_end = new THREE.Vector3( 25, 50, 0 );
 	plot_btx = new Plot(origin, horizontal_end, vertical_end);
 	plot_btx.setData( tvals, xvals );
 	plot_btx.setLabels( "t", "x" );
 	plot_btx.plotObject();
 	plots.p5 = plot_btx;
 	// Hermite t v.s y
-	origin = new THREE.Vector3( 25, 10, 0 );
-	horizontal_end = new THREE.Vector3( 35, 10, 0);
-	vertical_end = new THREE.Vector3( 25, 20, 0 );
+	origin = new THREE.Vector3( 40, 25, 0 );
+	horizontal_end = new THREE.Vector3( 50, 25, 0);
+	vertical_end = new THREE.Vector3( 40, 50, 0 );
 	plot_bty = new Plot(origin, horizontal_end, vertical_end);
 	plot_bty.setData( tvals, yvals );
 	plot_bty.setLabels( "t", "y" );
@@ -404,9 +404,9 @@ function initPlots( scene ) {
 	plots.p6 = plot_bty;
 
 	// B-spline ----------------------------------
-	origin = new THREE.Vector3( 10, 10, 0 );
-	horizontal_end = new THREE.Vector3( 20, 10, 0 );
-	vertical_end = new THREE.Vector3( 10, 20, 0 );
+	origin = new THREE.Vector3( 10, 25, 0 );
+	horizontal_end = new THREE.Vector3( 20, 25, 0 );
+	vertical_end = new THREE.Vector3( 10, 50, 0 );
 	tvals = [];
 	zvals = [];
 	xvals = [];
@@ -424,18 +424,18 @@ function initPlots( scene ) {
 	plot_btz.plotObject();
 	plots.p7 = plot_btz;
 	// B-spline t v.s x
-	origin = new THREE.Vector3( 10, 25, 0 );
-	horizontal_end = new THREE.Vector3( 20, 25, 0);
-	vertical_end = new THREE.Vector3( 10, 35, 0 );
+	origin = new THREE.Vector3( 25, 25, 0 );
+	horizontal_end = new THREE.Vector3( 35, 25, 0);
+	vertical_end = new THREE.Vector3( 25, 50, 0 );
 	plot_btx = new Plot(origin, horizontal_end, vertical_end);
 	plot_btx.setData( tvals, xvals );
 	plot_btx.setLabels( "t", "x" );
 	plot_btx.plotObject();
 	plots.p8 = plot_btx;
 	// B-spline t v.s y
-	origin = new THREE.Vector3( 25, 10, 0 );
-	horizontal_end = new THREE.Vector3( 35, 10, 0);
-	vertical_end = new THREE.Vector3( 25, 20, 0 );
+	origin = new THREE.Vector3( 40, 25, 0 );
+	horizontal_end = new THREE.Vector3( 50, 25, 0);
+	vertical_end = new THREE.Vector3( 40, 50, 0 );
 	plot_bty = new Plot(origin, horizontal_end, vertical_end);
 	plot_bty.setData( tvals, yvals );
 	plot_bty.setLabels( "t", "y" );
@@ -515,7 +515,7 @@ function updateSplineOutline() {
 	points = spline.getPoints( SEGMENTS ); // also update points
 	spline.mesh.geometry.vertices = points;
 	spline.mesh.geometry.verticesNeedUpdate = true;
-	data_points.spline_points = points; // update data points struct
+	data_points.bspline_points = points; // update data points struct
 
 	updatePlots();
 	updateOracles();
@@ -602,8 +602,8 @@ function inputUpdate() {
 	// Press P to look at plots
 	if ( keyboard.pressed("P") ) 
 	{
-		camera.position.set( 25, 25, 25 );
-		camera.lookAt( 25, 25, 0 );
+		camera.position.set( 25, 30, 40 );
+		camera.lookAt( 25, 30, 0 );
 	}
 
 	// Press C to reset camera
@@ -678,7 +678,17 @@ function render() {
 	// Set sweeping points visibility using control UI
 	for(var o in oracles){
 		var oracle = oracles[o];
-		oracle.visible = params.cubicBezier || params.bSpline || params.cubicHermite;
+		if(o === "bezierCurveObject" || o === "p1" || o === "p2" || o === "p3"){
+			oracle.visible = params.cubicBezier;
+		}
+		else if(o === "hermiteCurveObject" || o === "p4" || o === "p5" || o === "p6")
+		{
+			oracle.visible = params.cubicHermite;
+		}
+		else
+		{
+			oracle.visible = params.bSpline;
+		}
 	}
 	
 	renderer.render( scene, camera );
