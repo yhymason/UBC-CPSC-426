@@ -1,0 +1,62 @@
+<!-- 
+	CPSC 426 - Computer Animation
+	University of British Columbia, Vancouver, BC, Canada
+	Quaternion Visualizer HTML : scripts linking and html styling
+	Created by:
+		- Mason Yang : yhymason@gmail.com
+		- Michiel van de Panne : van@cs.ubc.ca
+	2018-10-03
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Quaternion Visualizer</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:left;
+			}
+
+		</style>
+	</head>
+	<body>
+
+  		<div id="container"></div>
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> 
+			<h5>CPSC 426 Quaternion Visualizer</h5>
+			<h6>Keyboard Controls:</h6>
+			<h6></h6>
+			<h6></h6>
+			<h6></h6>
+			<h6></h6>
+		</div>
+
+		<script src="../build/three.js"></script>
+
+		<script src="../js/controls/DragControls.js"></script>
+		<script src="../js/controls/OrbitControls.js"></script>
+		<script src="../js/controls/TransformControls.js"></script>
+
+		<script src="../js/libs/stats.min.js"></script>
+		<script src="../js/libs/dat.gui.min.js"></script>
+
+		<script src="THREEx.KeyboardState.js"></script>
+		<script src="simple_quaternion.js"></script>
+		<script src="quaternion_visualizer.js"></script>
+	</body>
+</html>
