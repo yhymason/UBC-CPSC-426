@@ -13,7 +13,6 @@ var camera, scene, renderer, spotlight;
 var splineHelperObjects = [];
 var control_points = [];
 var point = new THREE.Vector3();
-var options;
 
 var geometry = new THREE.BoxBufferGeometry( 1, 1, 1 );
 var transformControl;
