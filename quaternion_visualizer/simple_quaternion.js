@@ -17,7 +17,6 @@ function SimpleQuaternion( x, y, z, w ) {
 	this.w = w || 1;
 	this.v = new THREE.Vector3(this.x, this.y, this.z);
 	this.isQuaternion = true;
-	this.normalize();
 
 	// Adds q to this quaternion
 	this.add = function( q ) {
@@ -53,10 +52,10 @@ function SimpleQuaternion( x, y, z, w ) {
 	// Normalizes this quaternion
 	this.normalize = function() {
 		var length = Math.sqrt( this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w );
-		this.x = this.x * length;
-		this.y = this.y * length;
-		this.z = this.z * length;
-		this.w = this.w * length;
+		this.x = this.x / length;
+		this.y = this.y / length;
+		this.z = this.z / length;
+		this.w = this.w / length;
 
 		return this;
 	};
@@ -81,51 +80,53 @@ function fromEulerToRotationMatrix( euler ){
 	if(!euler.isEuler){
 		return;
 	}
-	var m = new Matrix3();
+	var m = new THREE.Matrix3();
+	var x = euler.x;
+	var y = euler.y;
+	var z = euler.z;
 	var order = euler.order; //'YZX', 'ZXY', 'XZY', 'YXZ' and 'ZYX'. Default is 'XYZ'
-	var Rx = new Matrix3();
-	Rx.set( 1, 0, 0, 
-			0, Math.cos(euler.x), -1*Math.sin(euler.x), 
-			0, Math.sin(euler.x), Math.cos(euler.x));
-	var Ry = new Matrix3();
-	Ry.set( Math.cos(euler.y), 0, Math.sin(euler.y),
-			0, 1, 0,
-			-1*Math.sin(euler.y), 0, Math.cos(euler.y));
-	var Rz = new Matrix3();
-	Rz.set( Math.cos(euler.z), Math.sin(euler.z), 0,
-			Math.sin(euler.z), Math.cos(euler.z), 0,
-			0, 0, 1);
+	var Rz = new THREE.Matrix3().set( Math.cos(z), -1*Math.sin(z), 0,
+									   Math.sin(z), Math.cos(z), 0,
+									   0, 0, 1 ); // matrix for rotation about the z axis
+	var Ry = new THREE.Matrix3().set( Math.cos(y), 0, Math.sin(y),
+									   0, 1, 0, 
+									   -1*Math.sin(y), 0, Math.cos(y)); // matrix for rotation about the y axis
+	var Rx = new THREE.Matrix3().set( 1, 0, 0,
+									   0, Math.cos(x), -1*Math.sin(x),
+									   0, Math.sin(x), Math.cos(x) ); // matrix for rotation about the z axis
 	// Construct rotation matrix given euler angles' order
-	switch( order ) { 
-    case 'YZX':
-    	m.multiply(Rx);
-    	m.multiply(Rz);
-    	m.multiply(Ry);
-        break;
-    case 'ZXY':
-    	m.multiply(Ry);
-    	m.multiply(Rx);
-    	m.multiply(Rz);
-        break;
-    case 'XZY':
-    	m.multiply(Ry);
-    	m.multiply(Rz);
-    	m.multiply(Rx);
-    	break;
-    case 'YXZ':
-    	m.multiply(Rz);
-    	m.multiply(Rx);
-    	m.multiply(Ry);
-    	break;
-    case 'ZYX':
-    	m.multiply(Rx);
-    	m.multiply(Ry);
-    	m.multiply(Rz);
-    	break;
-    default:
-        m.multiply(Rz);
-    	m.multiply(Ry);
-    	m.multiply(Rx);
+	switch( order ) 
+	{ 
+    	case 'XZY':
+	    	m.multiply(Rx);
+	    	m.multiply(Rz);
+	    	m.multiply(Ry);
+	        break;
+	    case 'XYZ':
+	    	m.multiply(Rx);
+	    	m.multiply(Ry);
+	    	m.multiply(Rz);
+	        break;
+	    case 'YXZ':
+	    	m.multiply(Ry);
+	    	m.multiply(Rx);
+	    	m.multiply(Rz);
+	    	break;
+	    case 'YZX':
+	    	m.multiply(Ry);
+	    	m.multiply(Rz);
+	    	m.multiply(Rx);
+	    	break;
+	    case 'ZYX':
+	    	m.multiply(Rz);
+	    	m.multiply(Ry);
+	    	m.multiply(Rx);
+	    	break;
+	    case 'ZXY':
+	    	m.multiply(Rz);
+	    	m.multiply(Rx);
+	    	m.multiply(Ry);
+	    	break;
 	}
 	return m;
 }
@@ -135,7 +136,7 @@ function fromQuaternionToRotationMatrix( simple_quaternion ){
 	if(!simple_quaternion.isQuaternion){
 		return;
 	}
-	var m = new Matrix3();
+	var m = new THREE.Matrix3();
 	var elements = m.elements;
 	var qx = simple_quaternion.x;
 	var qy = simple_quaternion.y;
@@ -158,16 +159,40 @@ function fromQuaternionToRotationMatrix( simple_quaternion ){
 // Given a THREE.Euler object, convert to a simple quaternion
 function fromEulerToQuaternion( euler ){
 	var m = fromEulerToRotationMatrix( euler );
-	if( m.determinant !== 1){
-		return;
-	}
-	var elements = m.elements;
-	var w = Math.sqrt(1+elements[0]+elements[4]+elements[8]) / 2;
-	var x = (elements[7] - elements[5]) / (w*4);
-	var y = (elements[2] - elements[6]) / (w*4);
-	var z = (elements[3] - elements[1]) / (w*4);
 
-	var quaternion = new SimpleQuaternion( x, y, z, w );
+	var elements = m.elements;
+	var w, x, y, z;
+	var S;
+	var tr = elements[0] + elements[4] + elements[8]; // matrix trace
+	if (tr > 0) { 
+		S = 0.5 / Math.sqrt(tr+1.0); // S=4*qw 
+	    w = 0.25 / S;
+	    x = (elements[5] - elements[7]) * S;
+	    y = (elements[6] - elements[2]) * S; 
+	    z = (elements[1] - elements[3]) * S; 
+	} 
+	else if ((elements[0] > elements[4])&&(elements[0] > elements[8])) { 
+		S = Math.sqrt(1.0 + elements[0] - elements[4] - elements[8]) * 2; // S=4*qx 
+		w = (elements[5] - elements[7]) / S;
+		x = 0.25 * S;
+		y = (elements[1] + elements[3]) / S; 
+		z = (elements[2] + elements[6]) / S; 
+	} 
+	else if (elements[4] > elements[8]) { 
+		S = Math.sqrt(1.0 + elements[4] - elements[0] - elements[8]) * 2; // S=4*qy
+		w = (elements[6] - elements[2]) / S;
+		x = (elements[1] + elements[3]) / S; 
+		y = 0.25 * S;
+		z = (elements[7] + elements[5]) / S; 
+	} 
+	else { 
+		S = Math.sqrt(1.0 + elements[8] - elements[0] - elements[4]) * 2; // S=4*qz
+		w = (elements[1] - elements[3]) / S;
+		x = (elements[2] + elements[6]) / S;
+		y = (elements[7] + elements[5]) / S;
+		z = 0.25 * S;
+	}
+	var quaternion = new SimpleQuaternion(x,y,z,w);
 	return quaternion;
 }
 
@@ -180,9 +205,48 @@ function fromQuaternionToEuler( simple_quaternion ){
 	return euler; 
 }
 
+// Given a simple quaternion, convert to an Axis angle
+function fromQuaternionToAxisAngle( simple_quaternion ){
+	var qx = simple_quaternion.x;
+	var qy = simple_quaternion.y;
+	var qz = simple_quaternion.z;
+	var qw = simple_quaternion.w;
+	var axis_angle = {};
+	axis_angle.theta = 2 * Math.acos(qw);
+	var x, y, z;
+	if(qw === 1){
+		x = qx;
+		y = qy;
+		z = qz;
+	}
+	else{
+		x = qx / Math.sqrt(1-qw*qw);
+		y = qy / Math.sqrt(1-qw*qw);
+		z = qz / Math.sqrt(1-qw*qw);
+	}
+	axis_angle.k = new THREE.Vector3( x, y, z );
+
+	return axis_angle;
+
+}   
+
+// Given an axis-angle pair, convert to a simple quaternion
+function fromAxisAngleToQuaternion( angle, axis ){
+	if( !axis.isVector3 ){
+		return;
+	}
+	var s = Math.sin(angle/2);
+  	var x = axis.x * s;
+  	var y = axis.y * s;
+  	var z = axis.z * s;
+  	var w = Math.cos(angle/2);
+  	var quaternion = new SimpleQuaternion( x, y, z, w );
+  	return quaternion;
+}
+
 // convert a 3*3 rotation matrix to 4*4
 function fromRotation3toRotation4( m3 ){
-	var m4 = new Matrix4();
+	var m4 = new THREE.Matrix4();
 	var elements = m3.elements;
 	m4.set( elements[0], elements[3], elements[6], 0,
 			elements[1], elements[4], elements[7], 0,
