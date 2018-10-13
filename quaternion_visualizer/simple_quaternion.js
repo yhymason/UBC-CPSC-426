@@ -18,6 +18,12 @@ function SimpleQuaternion( x, y, z, w ) {
 	this.v = new THREE.Vector3(this.x, this.y, this.z);
 	this.isQuaternion = true;
 
+	// Return the clone of this quaternion
+	this.copy = function( q )
+	{
+		return new this.constructor( this.x, this.y, this.z, this.w );
+	}
+
 	// Adds q to this quaternion
 	this.add = function( q ) {
 		this.w += q.w;
@@ -25,27 +31,27 @@ function SimpleQuaternion( x, y, z, w ) {
 		this.y += q.y;
 		this.z += q.z;
 		this.v.set( this.x, this.y, this.z );
-		this.normalize();
+		normalize();
+		return this;
 	};
 
 	// Multiplies this quaternion by q
 	this.multiply = function( q ) {
 		if( q.isQuaternion = true )
 		{
-			var s = this.w * q.w - this.v.dot( q.v ); // new s
-			var v = new THREE.Vector3(); // new v
+			var v = new THREE.Vector3().copy(this.v); // new v
+			var s = this.w * q.w - v.dot( q.v ); // new s
 			// quaternion multiplication
 			v.crossVectors( this.v, q.v );
 			v.addScaledVector( q.v, this.w );
 			v.addScaledVector( this.v, q.w );
 			// update properties
-			this.v = v;
+			this.v.set( v.x, v.y, v.z );
 			this.x = this.v.x;
 			this.y = this.v.y;
 			this.z = this.v.z;
 			this.w = s;
 		}
-		this.normalize();
 		return this;
 	};
 
@@ -56,7 +62,7 @@ function SimpleQuaternion( x, y, z, w ) {
 		this.y = this.y / length;
 		this.z = this.z / length;
 		this.w = this.w / length;
-
+		this.v.set( this.x, this.y, this.z );
 		return this;
 	};
 
@@ -65,6 +71,7 @@ function SimpleQuaternion( x, y, z, w ) {
 		this.x *= - 1;
 		this.y *= - 1;
 		this.z *= - 1;
+		this.v.set( this.x, this.y, this.z );
 		this.normalize();
 		return this;
 	}
@@ -253,6 +260,17 @@ function fromRotation3toRotation4( m3 ){
 			elements[2], elements[5], elements[8], 0,
 			0, 0, 0, 1);
 	return m4;
+}
+
+// quaternion rotation of a vector
+function applyQuaternionToVector( vector3 , quaternion ){
+	var vector3_quaternion = new SimpleQuaternion(vector3.x, vector3.y, vector3.z, 0);
+	var q = quaternion.copy();
+	var q_inv = quaternion.copy().conjugate();
+	q.multiply(vector3_quaternion);
+	q.multiply(q_inv);
+	var result_vector = new THREE.Vector3(q.x, q.y, q.z);
+	return result_vector;
 }
 
 // Helper Functions End
