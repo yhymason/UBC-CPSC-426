@@ -22,7 +22,7 @@ function SimpleQuaternion( x, y, z, w ) {
 	this.copy = function( q )
 	{
 		return new this.constructor( this.x, this.y, this.z, this.w );
-	}
+	};
 
 	// Adds q to this quaternion
 	this.add = function( q ) {
@@ -74,7 +74,7 @@ function SimpleQuaternion( x, y, z, w ) {
 		this.v.set( this.x, this.y, this.z );
 		this.normalize();
 		return this;
-	}
+	};
 
 }
 // Quaternion Definition End

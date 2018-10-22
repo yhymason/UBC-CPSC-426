@@ -104,8 +104,6 @@ function init() {
 
 	container = document.getElementById( 'container' );
 
-	timer = new THREE.Clock();
-
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
