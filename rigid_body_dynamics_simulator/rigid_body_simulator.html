@@ -1,0 +1,61 @@
+<!-- 
+	CPSC 426 - Computer Animation
+	University of British Columbia, Vancouver, BC, Canada
+	Rigid Body Simulation HTML : scripts linking and html styling
+	Created by:
+		- Mason Yang : yhymason@gmail.com
+		- Michiel van de Panne : van@cs.ubc.ca
+	2018-10-15
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Rigid Body Simulator</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #f0f0f0;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 5px;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:left;
+			}
+
+		</style>
+	</head>
+	<body>
+
+  		<div id="container"></div>
+		<div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> 
+			<h5>CPSC 426 Rigid Body Simulator</h5>
+			<h6>Use sliders to choose launching velocities</h6>
+			<h6>Hit "Reset" button to reposition the body</h6>
+			<h6>Hit "Launch" button to simulate</h6>
+		</div>
+
+		<script src="../build/three.js"></script>
+
+		<script src="../js/controls/DragControls.js"></script>
+		<script src="../js/controls/OrbitControls.js"></script>
+		<script src="../js/controls/TransformControls.js"></script>
+
+		<script src="../js/libs/stats.min.js"></script>
+		<script src="../js/libs/dat.gui.min.js"></script>
+
+		<script src="simple_quaternion.js"></script>
+		<script src="math.min.js"></script>
+		<script src="rigid_body.js"></script>
+		<script src="rigid_body_simulator.js"></script>
+	</body>
+</html>
