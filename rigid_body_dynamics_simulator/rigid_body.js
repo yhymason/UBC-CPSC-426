@@ -31,6 +31,7 @@ function Body( pos, linear_vel, angular_vel, quaternion, m )
 	this.geometry;
 	this.material;
 	this.local_tensor = new THREE.Matrix3();
+	this.forces = []; // forces on center of mass besides gravity 
 
 
 	// Sets the geometry property of this body
@@ -74,13 +75,19 @@ function Body( pos, linear_vel, angular_vel, quaternion, m )
 		return inertia_tensor;
 	};
 
-	// Compute the net force acting on this body
+	// Applies extra forces to this body
+	// each element in the input array should be a Vec3
+	this.applyForces = function( array_of_forces ){
+		this.forces = array_of_forces;
+	}
+
+	// Computes the net force acting on this body
 	// forces: array of forces besides gravity
-	this.computeNetForce = function( forces ){
+	this.computeNetForce = function(){
 		var gravity = g.clone().multiplyScalar(m);
 		var net_force = new THREE.Vector3();
-		for(var i = 0; i < forces.length; i++){
-			net_force.add(forces[i]);
+		for(var i = 0; i < this.forces.length; i++){
+			net_force.add(this.forces[i]);
 		}
 		net_force.add(gravity);
 		return net_force;
@@ -88,11 +95,12 @@ function Body( pos, linear_vel, angular_vel, quaternion, m )
 
 	// Compute the net force acting on this body
 	// angular_acc: angular acceleration
-	this.computeNetTorque = function( angular_acc ){
+	this.computeNetTorque = function(){
 		return new THREE.Vector3();
 	};
 
 	// Solve equations of motion
+	// Only called upon single body case without constrain forces
 	this.solveSystem = function(){
 		//initialize return object
 		var ans = {};
@@ -107,7 +115,7 @@ function Body( pos, linear_vel, angular_vel, quaternion, m )
 				matrix_A[i][j] = inertia_elements[(i-3)+3*(j-3)]; // e.g. elements[1] is the 1st element of row 2
 			}   
 		}
-		var net_force = this.computeNetForce([]);
+		var net_force = this.computeNetForce(); 
 		// data type conversion and computation for net_torque
 		var net_torque = this.computeNetTorque(); // torque free case <0,0,0>
 		var w_cross_I = vectorToPreliminary(this.w).multiply(inertia_tensor);
@@ -177,3 +185,7 @@ function convertMatrix( m )
 	var math_matrix = math.matrix([row1, row2, row3]);
 	return math_matrix;
 }
+
+/*
+	Functions for solving multi-body cases
+*/

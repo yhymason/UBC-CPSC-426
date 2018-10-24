@@ -1,7 +1,7 @@
 /* 
 	CPSC 426 - Computer Animation
 	University of British Columbia, Vancouver, BC, Canada
-	Quaternion Visualizer Main : object management, UI and rendering
+	Rigid Body Simulator Main : object management, UI and rendering
 	Created by:
 		- Mason Yang : yhymason@gmail.com
 		- Michiel van de Panne : van@cs.ubc.ca
@@ -25,6 +25,12 @@ var button_obj = {
 		body.position = new THREE.Vector3();
 		body.w = new THREE.Vector3();
 		body.q = new SimpleQuaternion();
+		for (var key in dynamics_params) {
+		  	dynamics_params[key] = 0.0;
+		}
+		// reset everything used by UI
+		clearInterval(timer);
+		arrowUpdate();
 		update();
 	},
 	Launch:function(){
