@@ -41,8 +41,8 @@ var button_obj = {
 									dynamics_params.Angular_Wy, 
 									dynamics_params.Angular_Wz);
 		// set initial velocities
-		body.v = v;
-		body.w = w;
+		body.v.set(v.x, v.y, v.z);
+		body.w.set(w.x, w.y, w.z);
 		timer = setInterval(function(){ 
 			body.update(0.01); // 100 ms = 0.1s & update body dynamics
 			update(); // update objects rendered
