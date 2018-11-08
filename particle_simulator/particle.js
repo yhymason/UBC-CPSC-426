@@ -10,7 +10,6 @@
 
 
 const G = -9.81;
-var g = new THREE.Vector3(0, G, 0);
 
 /*
 	Basic particle definition
@@ -21,6 +20,8 @@ function Particle(){
 	this.radius = 1;
 	this.colour = 0x888888;
 	this.mesh;
+	this.mass = 0;
+	this.forces = [];
 
 	// Sets the position of this particle, input is a Vector3
 	this.setPosition = function( vec3 ){
@@ -31,6 +32,11 @@ function Particle(){
 	this.setVelocity = function( vec3 ){
 		this.velocity.set(vec3.x, vec3.y, vec3.z);
 	};
+
+	// Sets the mass of this particle, input is a number
+	this.setMass = function( m ){
+		this.mass = m;
+	}
 
 	// Sets the color of this particle, input is a Hex
 	// Updates the mesh material color if mesh is already set
@@ -61,6 +67,26 @@ function Particle(){
 		}
 		
 	};
+
+	// Apply a force on this particle
+	this.applyForce = function( f ){
+		if(f.isVector3 == true){
+			this.forces.push(f);
+		}
+	};
+
+	// Computes the netforce acting on this particle
+	this.computeNetForce = function(){
+		var netForce = new THREE.Vector3();
+		for(var i = 0; i < this.forces.length; i++){
+			netforce.add(this.forces[i]);
+		}
+		var g = new THREE.Vector3(0, this.mass*G, 0);
+		netforce.add(g);
+
+		return netforce;
+	};
+
 }
 
 function ParticleSystem(){
@@ -83,12 +109,23 @@ function ParticleSystem(){
 
 	// Take steps using explicit euler method
 	this.stepExplicitEuler = function( h ){
-
+		for(var i = 0; i < this.particles.length; i++){
+			var v = this.particles[i].velocity;
+			var p = this.particles[i].position;
+			var f = this.particles[i].computeNetForce();
+			var m = this.particles[i].mass;
+			var acceleration = f.clone().multiplyScalar(1/m);
+			var new_p = p.clone().add(v.clone().multiplyScalar(h));
+			var new_v = v.clone().add(acceleration.multiplyScalar(h));
+			this.particles[i].setPosition(new_p);
+			this.particles[i].setVelocity(new_v);  
+		}
 	};
 
 	// Take steps using midpoint method (2nd order Runge-Kutta)
 	this.stepMidpoint = function( h ){
-
+		this.stepExplicitEuler(0.5*h);
+		this.stepExplicitEuler(h);
 	};
 
 	// Take steps using trapezoid method
