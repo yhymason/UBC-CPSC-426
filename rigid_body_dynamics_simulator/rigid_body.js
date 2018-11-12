@@ -225,7 +225,7 @@ function solveBodies( connection_map ){
 // Object for storing the inter-body information 
 function ConnectionMap( static_contact ){
 	this.relationships = [];
-	this.static_contact = static_contact; 
+	this.static_contact = static_contact; // the contact point's location on the static object
 	// Gets an array of bodies that are connected in this map
 	this.getBodies = function(){
 		var bodies = [];
@@ -251,6 +251,7 @@ function ConnectionMap( static_contact ){
 			relationship.first = arguments[0];
 			relationship.contact_point = arguments[2];
 			relationship.contact_point_local = [];
+			// contact point's location in each body's local frame
 			relationship.contact_point_local.push(new THREE.Vector3().subVectors(arguments[2], arguments[0].position));
 			relationship.contact_point_local.push(new THREE.Vector3().subVectors(arguments[2], arguments[1].position));
 			relationship.second = arguments[1];
@@ -269,6 +270,8 @@ function ConnectionMap( static_contact ){
 			relationship.first = arguments[0];
 			relationship.contact_point = arguments[1];
 			relationship.contact_point_local = [];
+			// contact point's location in each body's local frame
+			//relationship.contact_point_local.push(new THREE.Vector3(0,0,3));
 			relationship.contact_point_local.push(new THREE.Vector3().subVectors(arguments[1], arguments[0].position));
 			relationship.row = [];
 			relationship.column = [];
@@ -388,12 +391,12 @@ function ConnectionMap( static_contact ){
 				wwr = w1.clone();
 				wwr = wwr.cross(w1.cross(this.relationships[i].vectors[0]));
 				// comment out the following code to disable stabilization
-				// var position_diff = new THREE.Vector3().subVectors(this.static_contact, this.relationships[i].contact_point);
-				// var wr = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].vectors[0]);
-				// var contact_velocity = new THREE.Vector3().addVectors(this.relationships[i].first.v.clone(), wr);
-				// var velocity_diff = new THREE.Vector3().subVectors(new THREE.Vector3(), contact_velocity);
-				// var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-1.0), velocity_diff.multiplyScalar(-0.1));
-				// stabilization.set(sum.x, sum.y, sum.z);
+				var position_diff = new THREE.Vector3().subVectors(this.static_contact, this.relationships[i].contact_point);
+				var wr = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].vectors[0]);
+				var contact_velocity = new THREE.Vector3().addVectors(this.relationships[i].first.v.clone(), wr);
+				var velocity_diff = new THREE.Vector3().subVectors(new THREE.Vector3(), contact_velocity);
+				var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-0.5), velocity_diff.multiplyScalar(-0.05));
+				stabilization.set(sum.x, sum.y, sum.z);
 				//comment out the above code to disable stabilization
 			}
 			else{
@@ -405,17 +408,17 @@ function ConnectionMap( static_contact ){
 				w2w2r2 = w2w2r2.crossVectors(w2, w2w2r2);
 				wwr = wwr.sub(w2w2r2);
 				// comment out the following code to disable stabilization
-				// var contact_point1 = this.relationships[i].contact_point;
-				// var second_body = this.relationships[i].second;
-				// var contact_point2 = second_body.mesh.localToWorld(this.relationships[i].contact_point_local[1].clone());
-				// var position_diff = new THREE.Vector3().subVectors(contact_point1, contact_point2);
-				// var wr1 = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].vectors[0]);
-				// var wr2 = new THREE.Vector3().crossVectors(this.relationships[i].second.w.clone(), this.relationships[i].vectors[1]);
-				// var contact_velocity1 = new THREE.Vector3().addVectors(this.relationships[i].first.v.clone(), wr1);
-				// var contact_velocity2 = new THREE.Vector3().addVectors(this.relationships[i].second.v.clone(), wr2);
-				// var velocity_diff = new THREE.Vector3().subVectors(contact_velocity1, contact_velocity2);
-				// var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(1.0), velocity_diff.multiplyScalar(-0.1));
-				// stabilization.set(sum.x, sum.y, sum.z);
+				var contact_point1 = this.relationships[i].contact_point;
+				var second_body = this.relationships[i].second;
+				var contact_point2 = second_body.mesh.localToWorld(this.relationships[i].contact_point_local[1].clone());
+				var position_diff = new THREE.Vector3().subVectors(contact_point2, contact_point1);
+				var wr1 = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].vectors[0]);
+				var wr2 = new THREE.Vector3().crossVectors(this.relationships[i].second.w.clone(), this.relationships[i].vectors[1]);
+				var contact_velocity1 = new THREE.Vector3().addVectors(this.relationships[i].first.v.clone(), wr1);
+				var contact_velocity2 = new THREE.Vector3().addVectors(this.relationships[i].second.v.clone(), wr2);
+				var velocity_diff = new THREE.Vector3().subVectors(contact_velocity2, contact_velocity1);
+				var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-1.1), velocity_diff.multiplyScalar(-0.11));
+				stabilization.set(sum.x, sum.y, sum.z);
 				// comment out the above code to disable stabilization
 			}
 			matrix_b.push(wwr.x + stabilization.x);
@@ -497,14 +500,7 @@ function ConnectionMap( static_contact ){
 			}
 			else{ // handle the regular case
 				var I;
-				// if((r-1) % num_bodies == 1){
-				// 	I = identity;
-				// }
-				// else
-				// {
-					I = negative_I;
-				// }
-				// upper half
+				I = negative_I;
 				var rowr_index = [6*num_bodies + 3*r, 6*(r-1) + 3];
 				var row_tilda = relationship.row[0];
 				var rowi_index = [6*num_bodies + 3*r, 6*(r-1)];
@@ -515,14 +511,7 @@ function ConnectionMap( static_contact ){
 				var columni_index = [6*(r-1), 6*num_bodies + 3*r];
 				insertMatrix3(matrix_A, I, columni_index);
 				insertMatrix3(matrix_A, column_tilda, columnr_index);
-				// if((r) % num_bodies == 1){
-					I = identity;
-				// }
-				// else
-				// {
-				// 	I = negative_I;
-				// }
-				// lower half
+				I = identity;
 				rowr_index = [6*num_bodies + 3*(r), 6*(r-1) + 9];
 				row_tilda = relationship.row[1];
 				rowi_index = [6*num_bodies + 3*(r), 6*(r-1) + 6];

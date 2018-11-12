@@ -72,8 +72,8 @@ function init() {
 	spotlight = light;
 
 	// main axes
-	//var axes = new THREE.AxesHelper( 500 );
-	//scene.add( axes );
+	var axes = new THREE.AxesHelper( 500 );
+	scene.add( axes );
 
 	// renderer code
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -115,10 +115,11 @@ function initObjects( scene ){
 
 	// Create first link
 	var connection1 = point.localToWorld(point.geometry.vertices[0].clone());
-	var body1_geometry = new THREE.BoxGeometry( 2, 4, 6 );
+	var body1_geometry = new THREE.BoxGeometry( 1, 1, 6 );
 	var translation = new THREE.Vector3().subVectors(connection1, new THREE.Vector3(0,0,3));
 	translation = new THREE.Matrix4().makeTranslation(translation.x, translation.y, translation.z);
 	var body1 = new Body();
+	body1.m = 1;
 	body1.setGeometry(body1_geometry);
 	body1.setMaterial();
 	var body1_mesh = new THREE.Mesh( body1.geometry, body1.material );
@@ -131,19 +132,22 @@ function initObjects( scene ){
 	connection_map = new ConnectionMap( connection1 ); // sets the static point of this connection map
 	connection_map.addConnection(body1, connection1); // adds the base link
 	
-	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene);
-	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene);
+	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 1);
+	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 2);
+	//attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 4);
+	//attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 5);
 }
 
 /* 
 	Attaches a new body to a given body
 	Default contact point is the centre of cube's top side 
 */
-function attachBody( first_body, scene ){
+function attachBody( first_body, scene, mass ){
 	// Create a link
 	var connection = first_body.mesh.localToWorld(new THREE.Vector3(0,0,-3));
-	var body_geometry = new THREE.BoxGeometry( 2, 4, 6 );
+	var body_geometry = new THREE.BoxGeometry( 1, 1, 6 );
 	var body = new Body();
+	body.m = mass;
 	body.setGeometry(body_geometry);
 	body.setMaterial();
 	var body_mesh = new THREE.Mesh( body.geometry, body.material );

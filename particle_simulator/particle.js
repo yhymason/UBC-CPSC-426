@@ -18,10 +18,16 @@ function Particle(){
 	this.position = new THREE.Vector3();
 	this.velocity = new THREE.Vector3();
 	this.radius = 1;
-	this.colour = 0x888888;
+	this.colour = new THREE.Color( 0xffffff );
 	this.mesh;
 	this.mass = 0;
 	this.forces = [];
+	this.life_time = 5; // 10 seconds default life time
+
+	// Sets the life time of this particle
+	this.setLifeTime = function( lt ){
+		this.life_time = lt;
+	};
 
 	// Sets the position of this particle, input is a Vector3
 	this.setPosition = function( vec3 ){
@@ -40,12 +46,11 @@ function Particle(){
 
 	// Sets the color of this particle, input is a Hex
 	// Updates the mesh material color if mesh is already set
-	this.setColor = function( hex ){
-		this.colour = hex;
-		if(mesh != undefined)
+	this.setColor = function( c ){
+		this.colour = c;
+		if(this.mesh != undefined)
 		{
-			var c = {color: hex};
-			this.mesh.material.setValues(c);
+			this.mesh.material.color = this.colour;
 		}
 	};
 
@@ -53,19 +58,15 @@ function Particle(){
 	// Updates the mesh material size if mesh is already set
 	// Initializes the mesh if mesh is not set
 	this.setRadius = function( r ){
-		this.radius = r;
-		if(mesh != undefined)
+		if(this.mesh == undefined)
 		{
-			var size = {size: this.radius};
-			this.mesh.material.setValues(size);
-		}
-		else
-		{
-			var geometry = new THREE.Geometry();
-			var material = new THREE.PointsMaterial( { color: this.colour , size: this.radius} );
+			this.radius = r;
+			var geometry = new THREE.SphereGeometry( this.radius, 32, 32 );
+			var material = new THREE.MeshBasicMaterial(); 
 	 		this.mesh = new THREE.Mesh( geometry, material );
+	 		this.setColor(this.colour);
+	 		this.mesh.position.set(this.position.x, this.position.y, this.position.z);
 		}
-		
 	};
 
 	// Apply a force on this particle
@@ -79,19 +80,18 @@ function Particle(){
 	this.computeNetForce = function(){
 		var netForce = new THREE.Vector3();
 		for(var i = 0; i < this.forces.length; i++){
-			netforce.add(this.forces[i]);
+			netForce.add(this.forces[i]);
 		}
 		var g = new THREE.Vector3(0, this.mass*G, 0);
-		netforce.add(g);
+		netForce.add(g);
 
-		return netforce;
+		return netForce;
 	};
 
 }
 
 function ParticleSystem(){
 	this.particles = [];
-
 	// Add a particle object to this particle system
 	// Performs simple type check
 	this.addParticle = function( particle )
@@ -99,7 +99,7 @@ function ParticleSystem(){
 		var r = particle.radius;
 		if( r != undefined && r != 0)
 		{
-			this.particles.push[particle];
+			this.particles.push(particle);
 		}
 	};
 
@@ -118,7 +118,9 @@ function ParticleSystem(){
 			var new_p = p.clone().add(v.clone().multiplyScalar(h));
 			var new_v = v.clone().add(acceleration.multiplyScalar(h));
 			this.particles[i].setPosition(new_p);
-			this.particles[i].setVelocity(new_v);  
+			this.particles[i].setVelocity(new_v);
+			this.particles[i].life_time -= h;  
+			this.particles[i].mesh.position.set(new_p.x, new_p.y, new_p.z);
 		}
 	};
 
