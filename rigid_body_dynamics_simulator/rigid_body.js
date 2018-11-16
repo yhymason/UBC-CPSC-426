@@ -143,18 +143,17 @@ function Body( pos, linear_vel, angular_vel, quaternion, m )
 	this.update = function( change, t ) {
    		var update;
    		var d_t;
-   		if(arguments.length == 2){
+   		if(arguments.length == 2){ // if an update tuple is passed to this function
    			update = arguments[0];
    			d_t = arguments[1];
    		}
-   		else
+   		else // else handles the non-constrained case
    		{
    			update = this.solveSystem();
    			d_t = arguments[0];
    		}
    		var dv = update.linear;
    		var dw = update.angular;
-   		//console.log(dv);
    		//update position
    		this.position.add(this.v.clone().multiplyScalar(d_t));
    		//update linear velocity
@@ -204,12 +203,9 @@ function convertMatrix( m )
 function solveBodies( connection_map ){
 	var matrix_A = connection_map.constructMatrixA();
 	var matrix_b = connection_map.constructVectorb();
-	//console.log(matrix_A);
-	// console.log(matrix_b);
 	var lu = math.lup(matrix_A); // LU decomposition of A
 	var x = math.lusolve(lu, matrix_b); // solve A*x = b
 	var results = x._data;
-	//console.log(results);
 	var updates = [];
 	var num_bodies = connection_map.getBodies().length;
 	for(var i = 0; i < num_bodies; i++){
@@ -218,13 +214,12 @@ function solveBodies( connection_map ){
 		update.angular = new THREE.Vector3().set(results[6*i+3], results[6*i+4], results[6*i+5]);
 		updates.push(update);
 	}
-	//console.log(updates);
 	return updates;
 }
 
 // Object for storing the inter-body information 
 function ConnectionMap( static_contact ){
-	this.relationships = [];
+	this.relationships = []; // array of constraints 
 	this.static_contact = static_contact; // the contact point's location on the static object
 	// Gets an array of bodies that are connected in this map
 	this.getBodies = function(){
@@ -248,16 +243,16 @@ function ConnectionMap( static_contact ){
 	this.addConnection = function( body1, body2, point /* or (body1, point)*/){
 		if(arguments.length == 3){
 			var relationship = {};
-			relationship.first = arguments[0];
-			relationship.contact_point = arguments[2];
-			relationship.contact_point_local = [];
+			relationship.first = arguments[0]; // first body in this constraint 
+			relationship.contact_point = arguments[2]; // contact point's location
+			relationship.contact_point_local = []; // array of contact points' position in each body's local frame
 			// contact point's location in each body's local frame
 			relationship.contact_point_local.push(new THREE.Vector3().subVectors(arguments[2], arguments[0].position));
 			relationship.contact_point_local.push(new THREE.Vector3().subVectors(arguments[2], arguments[1].position));
-			relationship.second = arguments[1];
-			relationship.row = [];
-			relationship.column = [];
-			relationship.vectors = [];
+			relationship.second = arguments[1]; // second body in this constraint
+			relationship.rowR = []; // r tilda matrices in the row Jacobian
+			relationship.columnR = []; // r tilda matrices in the column Jacobian
+			relationship.r_vectors = []; // r vectors for each body
 			if(this.hasRelationship(arguments[0],
 				arguments[1],
 				arguments[2]) == false)
@@ -265,17 +260,17 @@ function ConnectionMap( static_contact ){
 				this.relationships.push(relationship);
 			}
 		}
-		else if(arguments.length == 2){
+		else if(arguments.length == 2){ // static + one body case
 			var relationship = {};
-			relationship.first = arguments[0];
-			relationship.contact_point = arguments[1];
-			relationship.contact_point_local = [];
+			relationship.first = arguments[0]; // first body in this constraint 
+			relationship.contact_point = arguments[1]; // contact point's location
+			relationship.contact_point_local = []; // array of contact points' position in each body's local frame
 			// contact point's location in each body's local frame
 			//relationship.contact_point_local.push(new THREE.Vector3(0,0,3));
 			relationship.contact_point_local.push(new THREE.Vector3().subVectors(arguments[1], arguments[0].position));
-			relationship.row = [];
-			relationship.column = [];
-			relationship.vectors = [];
+			relationship.rowR = []; // r tilda matrices in the row Jacobian
+			relationship.columnR = []; // r tilda matrices in the column Jacobian
+			relationship.r_vectors = []; // r vectors for each body
 			if(this.hasRelationship(arguments[0],arguments[1]) == false)
 			{
 				this.relationships.push(relationship);
@@ -292,6 +287,7 @@ function ConnectionMap( static_contact ){
 		for(var r in this.relationships){
 			var relationship = this.relationships[r];
 			var body = relationship.first;
+			// each constraint's contact point is updated with respect to the first body 
 			var new_point = body.mesh.localToWorld(relationship.contact_point_local[0].clone());
 			relationship.contact_point = new_point;
 		}
@@ -302,7 +298,7 @@ function ConnectionMap( static_contact ){
 		for(var r in this.relationships){
 			var relationship = this.relationships[r];
 			var length = Object.keys(relationship).length;
-			if(length === 7 && arguments.length === 3)
+			if(length === 7 && arguments.length === 3) // check for regular 2 bodies + 1 point case
 			{
 				if(relationship.first.position.equals(arguments[0]) && 
 				relationship.second.position.equals(arguments[1]) && 
@@ -310,7 +306,7 @@ function ConnectionMap( static_contact ){
 					return true;
 				}
 			}
-			else if(length === 6 && arguments.length === 2)
+			else if(length === 6 && arguments.length === 2) // check for 1 static + 1 body + 1 point case
 			{
 				if(relationship.first.position.equals(arguments[0]) && 
 				relationship.contact_point.equals(arguments[1])){
@@ -327,34 +323,36 @@ function ConnectionMap( static_contact ){
 		for(var r in this.relationships){
 			var relationship = this.relationships[r];
 			var length = Object.keys(relationship).length;
-			relationship.row = [];
-			relationship.column = [];
-			relationship.vectors = [];
-			if(length == 7)
+			// clear each constraint R arrays
+			relationship.rowR = []; // r tilda matrices in the row Jacobian
+			relationship.columnR = []; // r tilda matrices in the column Jacobian
+			relationship.r_vectors = []; // r vectors for each body
+			if(length == 7) // regular 2 body case
 			{
 				var b1 = relationship.first;
 				var b2 = relationship.second;
-				var p = relationship.contact_point;
-				var r1_tilda = new THREE.Vector3().subVectors(p, b1.position);
-				var r2_tilda = new THREE.Vector3().subVectors(p, b2.position);
-				relationship.vectors.push(r1_tilda);
-				relationship.vectors.push(r2_tilda);
+				var contact_point1 = relationship.contact_point; // contact point's world position on first body
+				var contact_point2 = b2.mesh.localToWorld(relationship.contact_point_local[1].clone()); // contact point's world position on second body
+				var r1_tilda = new THREE.Vector3().subVectors(contact_point1, b1.position);
+				var r2_tilda = new THREE.Vector3().subVectors(contact_point2, b2.position);
+				relationship.r_vectors.push(r1_tilda);
+				relationship.r_vectors.push(r2_tilda);
 				r1_tilda = vectorToPreliminary(r1_tilda);
-				relationship.row.push(r1_tilda);
-				relationship.column.push(r1_tilda.clone().multiplyScalar(-1));
+				relationship.rowR.push(r1_tilda);
+				relationship.columnR.push(r1_tilda.clone().multiplyScalar(-1));
 				r2_tilda = vectorToPreliminary(r2_tilda);
-				relationship.column.push(r2_tilda);
-				relationship.row.push(r2_tilda.clone().multiplyScalar(-1));
+				relationship.columnR.push(r2_tilda);
+				relationship.rowR.push(r2_tilda.clone().multiplyScalar(-1));
 			}
-			else
+			else // 1 static and 1 body case
 			{
 				var b1 = relationship.first;
 				var p = relationship.contact_point;
 				var r1_tilda = new THREE.Vector3().subVectors(p, b1.position);
-				relationship.vectors.push(r1_tilda);
+				relationship.r_vectors.push(r1_tilda);
 				r1_tilda = vectorToPreliminary(r1_tilda);
-				relationship.row.push(r1_tilda);
-				relationship.column.push(r1_tilda.clone().multiplyScalar(-1));
+				relationship.rowR.push(r1_tilda);
+				relationship.columnR.push(r1_tilda.clone().multiplyScalar(-1));
 			}
 		}
 	};
@@ -374,6 +372,7 @@ function ConnectionMap( static_contact ){
 			var w_cross_I_dot_w = math.multiply(w_cross_I, math.matrix(bodies[i].w.toArray())); // math js vector
 			w_cross_I_dot_w = new THREE.Vector3().fromArray(w_cross_I_dot_w._data); // back to three js vector
 			net_torque.sub(w_cross_I_dot_w); // net torque minus (w cross I dot w)
+			mg.sub(bodies[i].v.clone().multiplyScalar(0.1)); // add friction
 			matrix_b.push(mg.x);
 			matrix_b.push(mg.y);
 			matrix_b.push(mg.z);
@@ -389,35 +388,38 @@ function ConnectionMap( static_contact ){
 			if(this.relationships[i].second === undefined){
 				var w1 = this.relationships[i].first.w.clone();
 				wwr = w1.clone();
-				wwr = wwr.cross(w1.cross(this.relationships[i].vectors[0]));
+				wwr = wwr.cross(w1.cross(this.relationships[i].r_vectors[0]));
 				// comment out the following code to disable stabilization
 				var position_diff = new THREE.Vector3().subVectors(this.static_contact, this.relationships[i].contact_point);
-				var wr = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].vectors[0]);
+				var wr = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].r_vectors[0]);
 				var contact_velocity = new THREE.Vector3().addVectors(this.relationships[i].first.v.clone(), wr);
 				var velocity_diff = new THREE.Vector3().subVectors(new THREE.Vector3(), contact_velocity);
-				var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-0.5), velocity_diff.multiplyScalar(-0.05));
+				var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-2.0), velocity_diff.multiplyScalar(-0.5));
 				stabilization.set(sum.x, sum.y, sum.z);
-				//comment out the above code to disable stabilization
+				// comment out the above code to disable stabilization
 			}
 			else{
 				var w1 = this.relationships[i].first.w.clone();
 				wwr = w1.clone();
-				wwr = wwr.cross(w1.cross(this.relationships[i].vectors[0]));
+				wwr = wwr.cross(w1.cross(this.relationships[i].r_vectors[0]));
 				var w2 = this.relationships[i].second.w.clone();
-				var w2w2r2 = new THREE.Vector3().crossVectors(w2, this.relationships[i].vectors[1]);
+				var w2w2r2 = new THREE.Vector3().crossVectors(w2, this.relationships[i].r_vectors[1]);
 				w2w2r2 = w2w2r2.crossVectors(w2, w2w2r2);
 				wwr = wwr.sub(w2w2r2);
 				// comment out the following code to disable stabilization
-				var contact_point1 = this.relationships[i].contact_point;
+				var first_body = this.relationships[i].first;
 				var second_body = this.relationships[i].second;
+				// compute the contact point's location with respect to each body
+				var contact_point1 = first_body.mesh.localToWorld(this.relationships[i].contact_point_local[0].clone());
 				var contact_point2 = second_body.mesh.localToWorld(this.relationships[i].contact_point_local[1].clone());
 				var position_diff = new THREE.Vector3().subVectors(contact_point2, contact_point1);
-				var wr1 = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].vectors[0]);
-				var wr2 = new THREE.Vector3().crossVectors(this.relationships[i].second.w.clone(), this.relationships[i].vectors[1]);
+				// compute the contact point's velocity with respect to each body
+				var wr1 = new THREE.Vector3().crossVectors(this.relationships[i].first.w.clone(), this.relationships[i].r_vectors[0]);
+				var wr2 = new THREE.Vector3().crossVectors(this.relationships[i].second.w.clone(), this.relationships[i].r_vectors[1]);
 				var contact_velocity1 = new THREE.Vector3().addVectors(this.relationships[i].first.v.clone(), wr1);
 				var contact_velocity2 = new THREE.Vector3().addVectors(this.relationships[i].second.v.clone(), wr2);
 				var velocity_diff = new THREE.Vector3().subVectors(contact_velocity2, contact_velocity1);
-				var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-1.1), velocity_diff.multiplyScalar(-0.11));
+				var sum = new THREE.Vector3().addVectors(position_diff.multiplyScalar(-2.0), velocity_diff.multiplyScalar(-0.5));
 				stabilization.set(sum.x, sum.y, sum.z);
 				// comment out the above code to disable stabilization
 			}
@@ -432,7 +434,6 @@ function ConnectionMap( static_contact ){
 	// Constructs an array of mass matrices for all the bodies
 	this.constructMassMatrix = function(){
 		var bodies = this.getBodies();
-		//console.log(bodies);
 		var mass_matrices = [];
 		for(var i = 0; i < bodies.length; i++){
 			var m3 = new THREE.Matrix3().multiplyScalar(bodies[i].m);
@@ -487,13 +488,13 @@ function ConnectionMap( static_contact ){
 				}
 				// insert row matrices
 				var rowr_index = [6*num_bodies + 3*r, 3*r + 3];
-				var row_tilda = relationship.row[0];
+				var row_tilda = relationship.rowR[0];
 				var rowi_index = [6*num_bodies + 3*r, 3*r];
 				insertMatrix3(matrix_A, I, rowi_index);
 				insertMatrix3(matrix_A, row_tilda, rowr_index);
 				// insert column matrices
 				var columnr_index = [3*r + 3, 6*num_bodies + 3*r];
-				var column_tilda = relationship.column[0];
+				var column_tilda = relationship.columnR[0];
 				var columni_index = [3*r, 6*num_bodies + 3*r];
 				insertMatrix3(matrix_A, I, columni_index);
 				insertMatrix3(matrix_A, column_tilda, columnr_index);
@@ -502,23 +503,23 @@ function ConnectionMap( static_contact ){
 				var I;
 				I = negative_I;
 				var rowr_index = [6*num_bodies + 3*r, 6*(r-1) + 3];
-				var row_tilda = relationship.row[0];
+				var row_tilda = relationship.rowR[0];
 				var rowi_index = [6*num_bodies + 3*r, 6*(r-1)];
 				insertMatrix3(matrix_A, I, rowi_index);
 				insertMatrix3(matrix_A, row_tilda, rowr_index);
 				var columnr_index = [6*(r-1) + 3, 6*num_bodies + 3*r];
-				var column_tilda = relationship.column[0];
+				var column_tilda = relationship.columnR[0];
 				var columni_index = [6*(r-1), 6*num_bodies + 3*r];
 				insertMatrix3(matrix_A, I, columni_index);
 				insertMatrix3(matrix_A, column_tilda, columnr_index);
 				I = identity;
 				rowr_index = [6*num_bodies + 3*(r), 6*(r-1) + 9];
-				row_tilda = relationship.row[1];
+				row_tilda = relationship.rowR[1];
 				rowi_index = [6*num_bodies + 3*(r), 6*(r-1) + 6];
 				insertMatrix3(matrix_A, I, rowi_index);
 				insertMatrix3(matrix_A, row_tilda, rowr_index);
 				columnr_index = [6*(r-1) + 9, 6*num_bodies + 3*(r)];
-				column_tilda = relationship.column[1];
+				column_tilda = relationship.columnR[1];
 				columni_index = [6*(r-1) + 6, 6*num_bodies + 3*(r)];
 				insertMatrix3(matrix_A, I, columni_index);
 				insertMatrix3(matrix_A, column_tilda, columnr_index);

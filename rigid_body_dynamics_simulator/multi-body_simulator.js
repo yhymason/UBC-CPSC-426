@@ -27,10 +27,8 @@ var button_obj = {
 		timer = setInterval(function(){ 
 			var bodies = connection_map.getBodies();
 			var updates = solveBodies( connection_map );
-			//console.log(updates);
 			for(var b in bodies){
 				var body = bodies[b];
-				//console.log(updates[b]);
 				body.update( updates[b], 0.01 );
 				body.mesh.quaternion._x = body.q.x;
 				body.mesh.quaternion._y = body.q.y;
@@ -40,7 +38,6 @@ var button_obj = {
 				body.mesh.updateMatrixWorld(true);
 				connection_map.updateConnections();
 			}
-			//connection_map.updateConnections();
 		}, 10);
 	}
 };
@@ -57,7 +54,7 @@ function init() {
 
 	camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
 	camera.position.set( 50, 50, 50 );
-	camera.lookAt( 0, 0, 0 );
+	camera.lookAt( 0, 0, 30 );
 	scene.add( camera );
 
 	scene.add( new THREE.AmbientLight( 0xf0f0f0 ) );
@@ -133,9 +130,9 @@ function initObjects( scene ){
 	connection_map.addConnection(body1, connection1); // adds the base link
 	
 	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 1);
-	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 2);
-	//attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 4);
-	//attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 5);
+	attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 1);
+	// attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 4);
+	// attachBody(connection_map.getBodies()[connection_map.getBodies().length-1], scene, 5);
 }
 
 /* 
