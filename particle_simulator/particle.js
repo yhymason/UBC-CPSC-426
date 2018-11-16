@@ -61,7 +61,7 @@ function Particle(){
 		if(this.mesh == undefined)
 		{
 			this.radius = r;
-			var geometry = new THREE.SphereGeometry( this.radius, 32, 32 );
+			var geometry = new THREE.SphereGeometry( this.radius, this.radius * 32, this.radius * 32 );
 			var material = new THREE.MeshBasicMaterial(); 
 	 		this.mesh = new THREE.Mesh( geometry, material );
 	 		this.setColor(this.colour);

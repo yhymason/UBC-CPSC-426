@@ -27,7 +27,7 @@ var button_obj = {
 					system.particles.splice(p, 1); // also remove it from the particle system
 				}
 			}
-			if(system.getParticles().length < NUM_PARTICLES){
+			if(system.getParticles().length < NUM_PARTICLES){ // if particle system not full, spawn one particle
 				var particle = new Particle();
 				particle.setMass(0.1);
 				particle.setPosition(box.position.clone()); // spawn from the center of box
@@ -138,7 +138,7 @@ function update(){
 	 		{
 	 			var velocity = new THREE.Vector3();
 		 		velocity.setX(params.spread * math.random(-50,50));
-		 		velocity.setY(params.spread * math.random(80,100));
+		 		velocity.setY(math.max(params.spread * math.random(80,100), 20.0));
 		 		velocity.setZ(params.spread * math.random(-50,50));
 		 		particles[p].setVelocity(velocity);
 		 		var colour = new THREE.Color( params.color_spread * math.random(),
