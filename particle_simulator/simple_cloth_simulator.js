@@ -69,14 +69,13 @@ function init(){
 	var ey = gui.add( params, 'external_force_y', -5.0, 5.0).step(0.1).listen();
 	var ez = gui.add( params, 'external_force_z', -5.0, 5.0).step(0.1).listen();
 	initCloth( scene );
-	// 
 }
 
 // Updates particle properties upon GUI change
 function initCloth( scene ){
 	// cloth initialization
 	garment = new Cloth(40,30,5);
-	var num_pins = 8
+	var num_pins = 8;
 	while(num_pins >= 0){ // add 8 pins on top
 		garment.addPin(num_pins,0);
 		num_pins--;
@@ -109,6 +108,10 @@ function simulate(){
 	for(var i in garment.particles){ // apply external forces defined on GUI
 		garment.particles[i].applyForce(external_force);
 	}
+	for(var c in garment.constraints){ // updates jacobians
+
+		garment.buildJacobian(garment.constraints[c]);
+	}
 	garment.update(0.01);
 }
 
@@ -126,7 +129,8 @@ function animate() {
 
 function render() {
 
-	simulate(); // on each frame change, integrate
+	simulate(); 
+	// on each frame change, integrate
 	renderer.render( scene, camera );
 
 }

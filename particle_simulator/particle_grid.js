@@ -16,6 +16,7 @@
 var Kd = 0.10;
 var Kp = 1 - Kd;
 var MASS = 0.01;
+var eps = Number.EPSILON;
 
 function Cloth( width, height, segmentLength ){
 	this.w = width;
@@ -191,10 +192,58 @@ function Cloth( width, height, segmentLength ){
 		this.system.particles = this.particles; // make sure system has the same particles
 	};
 
+	// Builds a Jacobian 6*6 matrix for a given particle 
+	// updates the jacobians if already exists
+	this.buildJacobian = function( constraint ){
+		// extract data from constraint object
+		var pa = constraint[0];
+		var pb = constraint[1];
+		var l0 = constraint[2]; // rest length
+
+		// computes all the values needed for jacobian
+		var identity = math.identity(3);
+		// d_ij and d_ij transpose in the Jvx formula
+		var d_ab = new THREE.Vector3().subVectors(pb.position, pa.position);
+		d_ab = math.matrix(d_ab.toArray()); // convert to math.js vector
+		var d_ab_tr = new THREE.Vector3().subVectors(pb.position, pa.position);
+		d_ab_tr = math.matrix([[d_ab_tr.x],[d_ab_tr.y],[d_ab_tr.z]]); // convert to math.js vector then transpose
+
+		// compute the right 3*3 half of Jvx formula  
+		var Jvx_right = columnMultiplyRow(d_ab_tr, d_ab);
+		Jvx_right = math.multiply(Jvx_right, 1/(math.multiply(d_ab, d_ab_tr)._data[0] + eps));
+		var d_ab_norm = math.norm(d_ab);
+		var l_div_d;
+		if(l0 != 0 || l0 != undefined){
+			l_div_d = l0/d_ab_norm;
+		}
+		else{
+			l_div_d = 0;
+		}
+		Jvx_right = math.multiply(Jvx_right, l_div_d);
+		// compute the left 3*3 half of Jvx formula
+		var Jvx_left = math.identity(3);
+		Jvx_left = math.multiply(Jvx_left, (1 - l_div_d));
+		// merge right and left
+		var Jvx = math.add(Jvx_left, Jvx_right);
+		Jvx = math.multiply(Jvx, -1*Kp/pa.mass);
+
+		// construct 3*3 Jvv
+		var Jvv = math.identity(3);
+		Jvv = math.multiply(Jvv, -1*Kd/pa.mass);
+		// sum up the jacobians for each particle from each constraint
+	
+		addMatrix( pa.jacobian, Jvx, [3,0] );
+		addMatrix( pa.jacobian, Jvv, [3,3] );
+		addMatrix( pb.jacobian, math.multiply(Jvx, -1), [3,0] );
+		addMatrix( pb.jacobian, math.multiply(Jvv, -1), [3,3] );
+		
+	};
+
 	// Integrates the particles using time step h
 	this.update = function( h ){
 		this.system.particles = this.particles; // make sure system has the same particles
-		this.system.stepMidpoint( h );
+		this.system.stepImplicit( h );
+		//this.system.stepMidpoint( h );
 		this.particles = this.system.particles; // make sure particles are the same as the system's
 		// updates geometries 
 		for(var i = 0; i < this.vertical_segs; i++){
@@ -209,4 +258,74 @@ function Cloth( width, height, segmentLength ){
 			}
 		}
 	};
+}
+
+// Inserts a 3*3 MATH JS matrix into a parent MATH JS matrix given the starting index
+function insertMatrix( parent_matrix, matrix, index /*[row column]*/ ){
+	var row = index[0];
+	var column = index[1];
+	var parent_size = math.size(parent_matrix);
+	if(parent_size[0] < 3 || parent_size[1] < 3)
+	{
+		console.log("parent_matrix smaller than 3*3");
+		return;
+	}
+	else if(row+3 > parent_size[0] || column+3 > parent_size[1])
+	{
+		console.log("insertion out of parent matrix bound");
+		return;
+	}
+	else
+	{
+		parent_matrix = parent_matrix._data;
+		matrix = matrix._data;
+		for(var i = row; i < row + 3; i++)
+		{
+			for(var j = column; j < column + 3; j++)
+			{	
+				parent_matrix[i][j] = matrix[i%3][j%3];
+			}
+		}
+		parent_matrix = math.matrix(parent_matrix);
+		matrix = math.matrix(matrix);
+	}
+}
+
+
+// Adds the values from a 3*3 MATH JS matrix to the subset of a parent MATH JS matrix given the starting index
+function addMatrix( parent_matrix, matrix, index /*[row column]*/ ){
+	var row = index[0];
+	var column = index[1];
+	parent_matrix = parent_matrix._data;
+	matrix = matrix._data;
+	for(var i = row; i < row + 3; i++)
+	{
+		for(var j = column; j < column + 3; j++)
+		{
+			parent_matrix[i][j] += matrix[i%3][j%3];
+		}
+	}
+	parent_matrix = math.matrix(parent_matrix);
+	matrix = math.matrix(matrix);
+}  
+
+// Multiplies a column vector with a row vector(MATH JS)
+// two input vectors are transpose of each other
+function columnMultiplyRow( column_vec, row_vec ){
+	column_vec = column_vec._data;
+	row_vec = row_vec._data;
+	length = column_vec.length;
+	output = math.zeros(length,length)._data;
+	for(var i = 0; i < length; i++){
+		var column = math.multiply(column_vec, row_vec[i]);
+		column = math.flatten(column);
+		for(var j = 0; j < length; j++)
+		{
+			output[i][j] = column[j];
+		}
+	}
+	output = math.matrix(output);
+	column_vec = math.matrix(column_vec);
+	row_vec = math.matrix(row_vec);
+	return output;
 }

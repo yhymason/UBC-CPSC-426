@@ -10,7 +10,8 @@
 
 
 const G = -9.81;
-
+var Kd = 0.10;
+var Kp = 1 - Kd;
 /*
 	Basic particle definition
 */
@@ -23,7 +24,10 @@ function Particle(){
 	this.mass = 0;
 	this.forces = [];
 	this.life_time = 5; // 10 seconds default life time
-
+	this.jacobian = math.zeros(6,6); // Jacobian matrix used by integrator
+	// initialize jacobian to the required format
+	var identity = math.identity(3);
+	insertMatrix( this.jacobian, identity, [0,3] );
 	// Sets the life time of this particle
 	this.setLifeTime = function( lt ){
 		this.life_time = lt;
@@ -130,9 +134,33 @@ function ParticleSystem(){
 		this.stepExplicitEuler(h);
 	};
 
-	// Take steps using trapezoid method
-	this.stepTrapezoid = function( h ){
 
+	// Take steps using trapezoid method
+	this.stepImplicit = function( h ){
+		for(var i = 0; i < this.particles.length; i++){
+			var identity = math.identity(6);
+			var jacobian = this.particles[i].jacobian;
+			var matrix_A = math.subtract(identity, math.multiply(jacobian, h));
+			var fX_x = this.particles[i].velocity; 
+			var fX_v = this.particles[i].computeNetForce().multiplyScalar(1/this.particles[i].mass);
+			var vector_b = math.matrix([[fX_x.x], [fX_x.y], [fX_x.z],
+										[fX_v.x], [fX_v.y], [fX_v.z]]);
+			vector_b = math.multiply(vector_b, h);
+			var lu = math.lup(matrix_A); // LU decomposition of A
+			var delta_x = math.lusolve(lu, vector_b); // solve A*x = b
+			var v = this.particles[i].velocity;
+			var p = this.particles[i].position;
+			var new_p = p.clone().add(new THREE.Vector3(delta_x._data[0][0], delta_x._data[1][0], delta_x._data[2][0]));
+			var new_v = v.clone().add(new THREE.Vector3(delta_x._data[3][0], delta_x._data[4][0], delta_x._data[5][0]));
+			this.particles[i].setPosition(new_p);
+			this.particles[i].setVelocity(new_v);
+			this.particles[i].life_time -= h;  
+			this.particles[i].mesh.position.set(new_p.x, new_p.y, new_p.z);
+			this.particles[i].jacobian = math.zeros(6,6);
+			// reset particle's jacobian
+			var identity = math.identity(3);
+			insertMatrix( this.particles[i].jacobian, identity, [0,3] );
+		}
 	};
 
 
