@@ -136,31 +136,48 @@ function ParticleSystem(){
 
 
 	// Take steps using trapezoid method
-	this.stepImplicit = function( h ){
+	this.stepImplicit = function( jacobian, h ){
+		var vector_b = math.zeros(this.particles.length*6, 1); // 6n by 1 column vector
+		// fill up vector b
 		for(var i = 0; i < this.particles.length; i++){
-			var identity = math.identity(6);
-			var jacobian = this.particles[i].jacobian;
-			var matrix_A = math.subtract(identity, math.multiply(jacobian, h));
 			var fX_x = this.particles[i].velocity; 
 			var fX_v = this.particles[i].computeNetForce().multiplyScalar(1/this.particles[i].mass);
-			var vector_b = math.matrix([[fX_x.x], [fX_x.y], [fX_x.z],
-										[fX_v.x], [fX_v.y], [fX_v.z]]);
-			vector_b = math.multiply(vector_b, h);
-			var lu = math.lup(matrix_A); // LU decomposition of A
-			var delta_x = math.lusolve(lu, vector_b); // solve A*x = b
+			vector_b._data[i*6][0] = fX_x.x;
+			vector_b._data[i*6 + 1][0] = fX_x.y;
+			vector_b._data[i*6 + 2][0] = fX_x.z;
+			vector_b._data[i*6 + 3][0] = fX_v.x;
+			vector_b._data[i*6 + 4][0] = fX_v.y;
+			vector_b._data[i*6 + 5][0] = fX_v.z;
+
+		}
+		vector_b = math.multiply(vector_b, h);
+		var matrix_A = math.subtract(math.identity(this.particles.length*6), math.multiply(jacobian, h));
+		
+		// console.log("matrix_A");
+		// console.table(matrix_A._data);
+		// console.log("vector_b");
+		// console.table(vector_b._data);
+
+		var lu = math.lup(matrix_A); // LU decomposition of A
+		var delta_x = math.lusolve(lu, vector_b); // solve A*x = b
+		//console.table(delta_x._data)
+		// finally update each particle
+		for(var i = 0; i < this.particles.length; i++){
 			var v = this.particles[i].velocity;
 			var p = this.particles[i].position;
-			var new_p = p.clone().add(new THREE.Vector3(delta_x._data[0][0], delta_x._data[1][0], delta_x._data[2][0]));
-			var new_v = v.clone().add(new THREE.Vector3(delta_x._data[3][0], delta_x._data[4][0], delta_x._data[5][0]));
+			//console.table(delta_x._data);
+			var new_p = p.clone().add(new THREE.Vector3(delta_x._data[i*6][0], delta_x._data[i*6+1][0], delta_x._data[i*6+2][0]));
+			var new_v = v.clone().add(new THREE.Vector3(delta_x._data[i*6+3][0], delta_x._data[i*6+4][0], delta_x._data[i*6+5][0]));
 			this.particles[i].setPosition(new_p);
 			this.particles[i].setVelocity(new_v);
 			this.particles[i].life_time -= h;  
 			this.particles[i].mesh.position.set(new_p.x, new_p.y, new_p.z);
-			this.particles[i].jacobian = math.zeros(6,6);
 			// reset particle's jacobian
+			this.particles[i].jacobian = math.zeros(6,6);
 			var identity = math.identity(3);
 			insertMatrix( this.particles[i].jacobian, identity, [0,3] );
 		}
+		
 	};
 
 

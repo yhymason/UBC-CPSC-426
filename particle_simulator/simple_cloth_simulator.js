@@ -17,11 +17,26 @@ var garment;
 
 // slider contents
 var params = {
-	external_force_x: 0.0,
-	external_force_y: 0.0,
-	external_force_z: 0.0
+	constantWind: false,
+	implicitEuler: false,
+	simulation_control: false 
 };
 
+
+var button_obj = { 
+	Launch:function(){
+		params.simulation_control = true;
+	},
+	Reset:function(){
+		params.simulation_control = false;
+		for(var p in garment.planes)
+		{
+			scene.remove(garment.planes[p]); // add pieces of cloth into the scene
+		}
+		//scene.remove(garment.test_object);
+		initCloth( scene );
+	}
+};
 init();
 animate();
 
@@ -33,8 +48,8 @@ function init(){
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
 	camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-	camera.position.set( 50, 50, 50 );
-	camera.lookAt( 0, 0, 0 );
+	camera.position.set( 30, 30, 30 );
+	camera.lookAt( 0, 10, 0 );
 	scene.add( camera );
 
 	scene.add( new THREE.AmbientLight( 0xf0f0f0 ) );
@@ -65,31 +80,36 @@ function init(){
 
 	// add GUI controls
 	var gui = new dat.GUI();
-	var ex = gui.add( params, 'external_force_x', -5.0, 5.0).step(0.1).listen();
-	var ey = gui.add( params, 'external_force_y', -5.0, 5.0).step(0.1).listen();
-	var ez = gui.add( params, 'external_force_z', -5.0, 5.0).step(0.1).listen();
+	var wind = gui.add( params, 'constantWind').listen();
+	//var implicit = gui.add( params, 'implicitEuler').listen();
+	gui.add( button_obj, 'Launch');
+	gui.add( button_obj, 'Reset');
 	initCloth( scene );
+	//simulate();
 }
 
 // Updates particle properties upon GUI change
 function initCloth( scene ){
 	// cloth initialization
 	garment = new Cloth(40,30,5);
-	var num_pins = 8;
-	while(num_pins >= 0){ // add 8 pins on top
+
+	var num_pins = garment.w/garment.segmentLength;
+	while(num_pins >= 0){
 		garment.addPin(num_pins,0);
 		num_pins--;
 	}
+
 	garment.translate(0, 50, 0);
 	for(var p in garment.planes)
 	{
 		scene.add(garment.planes[p]); // add pieces of cloth into the scene
 	}
+	//scene.add(garment.test_object);
 	// visualize pins
 	for(var i in garment.pins)
 	{
 		var pin = garment.pins[i];
-		var geometry = new THREE.BoxGeometry( 1, 1, 1 );
+		var geometry = new THREE.BoxGeometry( 0.1, 0.1, 0.1 );
 		var material = new THREE.MeshBasicMaterial( {color: 0x888888} );
 		var cube = new THREE.Mesh( geometry, material );
 		cube.position.copy(pin.position);
@@ -99,20 +119,28 @@ function initCloth( scene ){
 
 // Simulates Cloth and updates geometry 
 function simulate(){
-	var external_force = new THREE.Vector3(
-		params.external_force_x,
-		params.external_force_y,
-		params.external_force_z
-	);
-	garment.solveConstraints(); // computes the between-particle forces
-	for(var i in garment.particles){ // apply external forces defined on GUI
+	var external_force;
+	if (params.constantWind == true){
+		external_force = new THREE.Vector3(0,0,0.1);
+	}
+	else{
+		external_force = new THREE.Vector3();
+	}
+
+	if( !params.implicitEuler ){
+		garment.solveConstraints(); // computes the between-particle forces
+	}
+
+	for(var i in garment.particles){ // apply wind forces defined on GUI
 		garment.particles[i].applyForce(external_force);
 	}
-	for(var c in garment.constraints){ // updates jacobians
 
-		garment.buildJacobian(garment.constraints[c]);
+	if( params.implicitEuler ){
+		for(var c in garment.constraints){ // updates jacobians
+			garment.buildJacobian(garment.constraints[c]);	
+		}
 	}
-	garment.update(0.01);
+	garment.update(0.01, params.implicitEuler );
 }
 
 
@@ -129,7 +157,9 @@ function animate() {
 
 function render() {
 
-	simulate(); 
+	if(params.simulation_control){
+		simulate(); 
+	}
 	// on each frame change, integrate
 	renderer.render( scene, camera );
 

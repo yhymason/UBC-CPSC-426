@@ -13,7 +13,7 @@
 	particles and constraints
 */
 
-var Kd = 0.10;
+var Kd = 0.1;
 var Kp = 1 - Kd;
 var MASS = 0.01;
 var eps = Number.EPSILON;
@@ -29,7 +29,7 @@ function Cloth( width, height, segmentLength ){
 	this.vertical_segs = (this.h/this.segmentLength);
 	this.num_particles = (this.horizontal_segs+1) * (this.vertical_segs+1);
 	this.planes = []; // storing all the meshes
-
+	this.test_object;
 	// create a particle system for this Cloth
 	this.system = new ParticleSystem();
 
@@ -45,13 +45,13 @@ function Cloth( width, height, segmentLength ){
 		var pin = new Particle();
 		var particle = this.particles[this.particle_index( j, i )];
 		pin.setMass(MASS);
-		pin.setPosition(particle.position);
+		pin.setPosition(particle.position.clone().add(new THREE.Vector3(0, this.segmentLength/20, 0)));
 		pin.setRadius(0.5);
 		this.pins.push(pin);
 		this.constraints.push( [
 			pin,
 			particle,
-			0 // 0 rest length because pined particles should stay fixed
+			this.segmentLength/20 // 0 rest length because pined particles should stay fixed
 		] );
 	};
 
@@ -67,27 +67,40 @@ function Cloth( width, height, segmentLength ){
 		}
 	}
 
-	// construct planes using points from each 2*2 block
-	for(var i = 0; i < this.vertical_segs; i++){
-		for(var j = 0; j < this.horizontal_segs; j++){
-			var plane_geometry = new THREE.Geometry();
-			plane_geometry.vertices.push(
-				this.particles[ this.particle_index( j, i ) ].position,
-				this.particles[ this.particle_index( j+1, i ) ].position,
-				this.particles[ this.particle_index( j+1, i+1 ) ].position,
-				this.particles[ this.particle_index( j, i+1 ) ].position,
-				this.particles[ this.particle_index( j, i ) ].position,
-			);
-			plane_geometry.faces.push(
-				new THREE.Face3( 0, 1, 2 ),
-				new THREE.Face3( 1, 2, 3 ),
-				new THREE.Face3( 2, 3, 4 ),
-			);
-			var plane_material = new THREE.MeshLambertMaterial( {color: Math.random() * 0xffffff, side: THREE.DoubleSide } );
-			var plane = new THREE.Mesh( plane_geometry, plane_material );
-			this.planes.push(plane);
+	if(this.horizontal_segs == 0){
+		var material = new THREE.LineBasicMaterial({
+			color: 0x0000ff
+		});
+
+		var geometry = new THREE.Geometry();
+		geometry.vertices.push( this.particles[ this.particle_index( 0, 0 ) ].position,
+								this.particles[ this.particle_index( 1, 0 ) ].position);
+		this.test_object = new THREE.Line( geometry, material );
+	}
+	else{
+		// construct planes using points from each 2*2 block
+		for(var i = 0; i < this.vertical_segs; i++){
+			for(var j = 0; j < this.horizontal_segs; j++){
+				var plane_geometry = new THREE.Geometry();
+				plane_geometry.vertices.push(
+					this.particles[ this.particle_index( j, i ) ].position,
+					this.particles[ this.particle_index( j+1, i ) ].position,
+					this.particles[ this.particle_index( j+1, i+1 ) ].position,
+					this.particles[ this.particle_index( j, i+1 ) ].position,
+					this.particles[ this.particle_index( j, i ) ].position,
+				);
+				plane_geometry.faces.push(
+					new THREE.Face3( 0, 1, 2 ),
+					new THREE.Face3( 1, 2, 3 ),
+					new THREE.Face3( 2, 3, 4 ),
+				);
+				var plane_material = new THREE.MeshLambertMaterial( {color: Math.random() * 0xffffff, side: THREE.DoubleSide } );
+				var plane = new THREE.Mesh( plane_geometry, plane_material );
+				this.planes.push(plane);
+			}
 		}
 	}
+	
 
 	this.system.particles = this.particles; // push the particles to the system;
 
@@ -207,56 +220,88 @@ function Cloth( width, height, segmentLength ){
 		d_ab = math.matrix(d_ab.toArray()); // convert to math.js vector
 		var d_ab_tr = new THREE.Vector3().subVectors(pb.position, pa.position);
 		d_ab_tr = math.matrix([[d_ab_tr.x],[d_ab_tr.y],[d_ab_tr.z]]); // convert to math.js vector then transpose
-
 		// compute the right 3*3 half of Jvx formula  
 		var Jvx_right = columnMultiplyRow(d_ab_tr, d_ab);
-		Jvx_right = math.multiply(Jvx_right, 1/(math.multiply(d_ab, d_ab_tr)._data[0] + eps));
+		Jvx_right = math.multiply(Jvx_right, 1/(math.multiply(d_ab, d_ab_tr)._data[0]));
 		var d_ab_norm = math.norm(d_ab);
-		var l_div_d;
-		if(l0 != 0 || l0 != undefined){
-			l_div_d = l0/d_ab_norm;
-		}
-		else{
-			l_div_d = 0;
-		}
+		var l_div_d = l0/(d_ab_norm);
 		Jvx_right = math.multiply(Jvx_right, l_div_d);
 		// compute the left 3*3 half of Jvx formula
 		var Jvx_left = math.identity(3);
 		Jvx_left = math.multiply(Jvx_left, (1 - l_div_d));
 		// merge right and left
+		// console.table(Jvx_left._data);
 		var Jvx = math.add(Jvx_left, Jvx_right);
 		Jvx = math.multiply(Jvx, -1*Kp/pa.mass);
 
 		// construct 3*3 Jvv
 		var Jvv = math.identity(3);
 		Jvv = math.multiply(Jvv, -1*Kd/pa.mass);
+		// console.table(Jvv._data);
 		// sum up the jacobians for each particle from each constraint
-	
 		addMatrix( pa.jacobian, Jvx, [3,0] );
 		addMatrix( pa.jacobian, Jvv, [3,3] );
 		addMatrix( pb.jacobian, math.multiply(Jvx, -1), [3,0] );
 		addMatrix( pb.jacobian, math.multiply(Jvv, -1), [3,3] );
-		
+	
+	};
+
+	// Combines all jacobians from each particle into one global jacobian
+	// Called by implicit Euler function
+	this.buildGlobalJacobian = function(){
+		var global_jacobian = math.zeros(this.num_particles * 6, this.num_particles * 6);
+		for(var i = 0; i < this.num_particles; i++){
+			//console.table(this.particles[i].jacobian._data);
+			// add all Jxv to the global jacobian
+			var identity = math.identity(3);
+			var Jxv_index = [i*6, 3 + i*6];
+			insertMatrix(global_jacobian, identity, Jxv_index);
+			// add all Jvx to the global jacobian
+			var Jvx = math.subset(this.particles[i].jacobian, math.index([3, 4, 5], [0, 1, 2]));
+			var Jvx_index = [3 + i*6, i*6];
+			insertMatrix(global_jacobian, Jvx, Jvx_index);
+			// add all Jvv to the global jacobian
+			var Jvv = math.subset(this.particles[i].jacobian, math.index([3, 4, 5], [3, 4, 5]));
+			var Jvv_index = [3 + i*6, 3 + i*6];
+			insertMatrix(global_jacobian, Jvv, Jvv_index);
+		}
+		//console.table(global_jacobian._data);
+		return global_jacobian;
 	};
 
 	// Integrates the particles using time step h
-	this.update = function( h ){
+	this.update = function( h, if_implicit ){
 		this.system.particles = this.particles; // make sure system has the same particles
-		this.system.stepImplicit( h );
-		//this.system.stepMidpoint( h );
+		if(if_implicit)
+		{
+			this.system.stepImplicit( this.buildGlobalJacobian(), h );
+		}
+		else{
+			this.system.stepMidpoint( h );
+		}
+		
 		this.particles = this.system.particles; // make sure particles are the same as the system's
 		// updates geometries 
-		for(var i = 0; i < this.vertical_segs; i++){
-			for(var j = 0; j < this.horizontal_segs; j++){
-				var plane_geometry = this.planes[j + i * ( this.horizontal_segs )].geometry;
-				plane_geometry.vertices[0].copy(this.particles[ this.particle_index( j, i ) ].position);
-				plane_geometry.vertices[1].copy(this.particles[ this.particle_index( j+1, i ) ].position);
-				plane_geometry.vertices[2].copy(this.particles[ this.particle_index( j+1, i+1 ) ].position);
-				plane_geometry.vertices[3].copy(this.particles[ this.particle_index( j, i+1 ) ].position);
-				plane_geometry.vertices[4].copy(this.particles[ this.particle_index( j, i ) ].position);
-				plane_geometry.verticesNeedUpdate = true;
+		if(this.horizontal_segs == 0){
+			var line_geometry = this.test_object.geometry;
+			line_geometry.vertices[0].copy(this.particles[ this.particle_index( 0, 0 ) ].position);
+			line_geometry.vertices[1].copy(this.particles[ this.particle_index( 1, 0 ) ].position);
+			line_geometry.verticesNeedUpdate = true;
+		}
+		else{
+			for(var i = 0; i < this.vertical_segs; i++){
+				for(var j = 0; j < this.horizontal_segs; j++){
+					var plane_geometry = this.planes[j + i * ( this.horizontal_segs )].geometry;
+					plane_geometry.vertices[0].copy(this.particles[ this.particle_index( j, i ) ].position);
+					plane_geometry.vertices[1].copy(this.particles[ this.particle_index( j+1, i ) ].position);
+					plane_geometry.vertices[2].copy(this.particles[ this.particle_index( j+1, i+1 ) ].position);
+					plane_geometry.vertices[3].copy(this.particles[ this.particle_index( j, i+1 ) ].position);
+					plane_geometry.vertices[4].copy(this.particles[ this.particle_index( j, i ) ].position);
+					plane_geometry.verticesNeedUpdate = true;
+				}
 			}
 		}
+		
 	};
 }
 
